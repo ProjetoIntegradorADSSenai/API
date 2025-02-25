@@ -1,13 +1,25 @@
 from flask import request, jsonify
 from flask_restful import Resource
+from google.cloud import bigquery
 
+PROJECT_ID = 'IntegracaoHomologado'
 
-class Admin(Resource):
+class Data(Resource):
     def get(self):
-        conn = db_connect.connect()
-        query = conn.execute(text("SELECT * FROM Josmar"))
-        result = [dict(zip(tuple(query.keys()), i)) for i in query.fetchall()]
-        return jsonify(result)
+        # Initialize BigQuery Client
+        client = bigquery.Client()
+
+        # Define SQL query
+        query = """
+            SELECT name, age FROM `my_project.my_dataset.my_table`
+            WHERE age > 18
+            LIMIT 10
+        """
+
+        query_job = client.query(query)
+        results = query_job.result()
+        return list([row.email for row in results])
+
 
     def post(self):
         conn = db_connect.connect()

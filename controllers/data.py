@@ -1,6 +1,7 @@
 from flask import Flask, request, jsonify
 from flask_restful import Resource, Api
 import pymysql
+from datetime import datetime
 
 # Flask app setup
 app = Flask(__name__)
@@ -42,12 +43,12 @@ class Data(Resource):
             with conn.cursor() as cursor:
                 cursor.execute(
                     "INSERT INTO Data (time, metal, plastic) VALUES (%s, %s, %s)",
-                    (data['time'], data['metal'], data['plastic'])
+                    (datetime.now().strftime("%Y-%m-%d %H:%M:%S"), data['metal'], data['plastic'])
                 )
                 conn.commit()
 
                 # Retrieve the inserted record
-                cursor.execute("SELECT time, metal, plastic FROM Data WHERE time = %s", (data['time'],))
+                cursor.execute("SELECT time, metal, plastic FROM Data WHERE time = %s", (datetime.now().strftime("%Y-%m-%d %H:%M:%S"),))
                 result = cursor.fetchone()
 
             conn.close()

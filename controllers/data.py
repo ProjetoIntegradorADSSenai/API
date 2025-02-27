@@ -1,45 +1,57 @@
-from flask import request, jsonify
-from flask_restful import Resource
-from google.cloud import bigquery
+from flask import Flask, request, jsonify
+from flask_restful import Resource, Api
+import pymysql
 
-PROJECT_ID = 'IntegracaoHomologado'
+# Flask app setup
+app = Flask(__name__)
+api = Api(app)
+
+# Database configuration
+DB_HOST = "database-1.clhwd5ytyuym.us-east-1.rds.amazonaws.com"
+DB_USER = "admin"
+DB_PASSWORD = "RDS_project"
+DB_NAME = "database-1"
+
+# Function to create a database connection
+def get_db_connection():
+    return pymysql.connect(
+        host=DB_HOST,
+        user=DB_USER,
+        password=DB_PASSWORD,
+        database=DB_NAME,
+        cursorclass=pymysql.cursors.DictCursor
+    )
 
 class Data(Resource):
     def get(self):
-        # Initialize BigQuery Client
-        client = bigquery.Client()
-
-        # Define SQL query
-        query = """
-            SELECT name, age FROM `my_project.my_dataset.my_table`
-            WHERE age > 18
-            LIMIT 10
-        """
-
-        query_job = client.query(query)
-        results = query_job.result()
-        return list([row.email for row in results])
-
+        try:
+            conn = get_db_connection()
+            with conn.cursor() as cursor:
+                cursor.execute("SELECT * FROM Data")
+                results = cursor.fetchall()
+            conn.close()
+            return jsonify(results)
+        except Exception as e:
+            return {"error": str(e)}, 500
 
     def post(self):
-        conn = db_connect.connect()
+        try:
+            data = request.json
 
-        hashed_password = bcrypt.hashpw(request.json['password'].encode('utf-8'), bcrypt.gensalt())
+            conn = get_db_connection()
+            with conn.cursor() as cursor:
+                cursor.execute(
+                    "INSERT INTO Data (time, metal, plastic) VALUES (%s, %s, %s)",
+                    (data['time'], data['metal'], data['plastic'])
+                )
+                conn.commit()
 
-        # Inserir fornecedor
-        conn.execute(text("INSERT INTO Josmar (email, password, budget) VALUES (:email, :password, :budget)"),
-            {
-                "email": request.json['email'],
-                "password": hashed_password,
-                "budget": request.json['budget']
-            }
-        )
+                # Retrieve the inserted record
+                cursor.execute("SELECT time, metal, plastic FROM Data WHERE time = %s", (data['time'],))
+                result = cursor.fetchone()
 
-        conn.connection.commit()
+            conn.close()
+            return jsonify(result)
 
-        # Retornar o fornecedor e endereço inseridos
-        query = conn.execute(text('SELECT email, budget FROM Josmar'))
-
-        result = [dict(zip(tuple(query.keys()), i)) for i in query.fetchall()]
-
-        return jsonify(result)
+        except Exception as e:
+            return {"error": str(e)}, 500

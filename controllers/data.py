@@ -1,35 +1,45 @@
 from flask import Flask, request, jsonify
 from flask_restful import Resource, Api
-import pymysql
+import psycopg2
+from psycopg2.extras import RealDictCursor
 from datetime import datetime
+import boto3
 
-# Flask app setup
+# Configuração do Flask
 app = Flask(__name__)
 api = Api(app)
 
-# Database configuration
-DB_HOST = "database-1.clhwd5ytyuym.us-east-1.rds.amazonaws.com"
-DB_USER = "admin"
-DB_PASSWORD = "RDS_project"
-DB_NAME = "database-1"
+# Configuração do banco de dados PostgreSQL
+DB_HOST = "database-2.clhwd5ytyuym.us-east-1.rds.amazonaws.com"
+DB_PORT = 5432  # Porta padrão do PostgreSQL
+DB_USER = "postgres"
+DB_NAME = "database-2"
+REGION = "us-east-1c"
+DB_PASS = "Senhapost"
 
-# Function to create a database connection
+# Cria sessão boto3 para gerar token de autenticação
+session = boto3.Session(profile_name='RDSCreds')
+client = session.client('rds')
+
+# Função para criar uma conexão com o banco de dados PostgreSQL
 def get_db_connection():
-    return pymysql.connect(
+    return psycopg2.connect(
         host=DB_HOST,
-        user=DB_USER,
-        password=DB_PASSWORD,
+        port=DB_PORT,
         database=DB_NAME,
-        cursorclass=pymysql.cursors.DictCursor
+        user=DB_USER,
+        password=DB_PASS,
+        sslrootcert="SSLCERTIFICATE"
     )
 
 class Data(Resource):
     def get(self):
         try:
             conn = get_db_connection()
-            with conn.cursor() as cursor:
-                cursor.execute("SELECT * FROM Data")
-                results = cursor.fetchall()
+            cursor = conn.cursor(cursor_factory=RealDictCursor)
+            cursor.execute("SELECT * FROM Data")
+            results = cursor.fetchall()
+            cursor.close()
             conn.close()
             return jsonify(results)
         except Exception as e:
@@ -38,21 +48,29 @@ class Data(Resource):
     def post(self):
         try:
             data = request.json
-
             conn = get_db_connection()
-            with conn.cursor() as cursor:
-                cursor.execute(
-                    "INSERT INTO Data (time, metal, plastic) VALUES (%s, %s, %s)",
-                    (datetime.now().strftime("%Y-%m-%d %H:%M:%S"), data['metal'], data['plastic'])
-                )
-                conn.commit()
+            cursor = conn.cursor(cursor_factory=RealDictCursor)
+            time_now = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+            
+            cursor.execute(
+                "INSERT INTO Data (time, metal, plastic) VALUES (%s, %s, %s)",
+                (time_now, data['metal'], data['plastic'])
+            )
+            conn.commit()
 
-                # Retrieve the inserted record
-                cursor.execute("SELECT time, metal, plastic FROM Data WHERE time = %s", (datetime.now().strftime("%Y-%m-%d %H:%M:%S"),))
-                result = cursor.fetchone()
-
+            # Recupera o registro inserido
+            cursor.execute(
+                "SELECT time, metal, plastic FROM Data WHERE time = %s",
+                (time_now,)
+            )
+            result = cursor.fetchone()
+            cursor.close()
             conn.close()
             return jsonify(result)
-
         except Exception as e:
             return {"error": str(e)}, 500
+
+api.add_resource(Data, '/data')
+
+if __name__ == '__main__':
+    app.run(debug=True)

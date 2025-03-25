@@ -59,13 +59,13 @@ class Data(Resource):
             time_now = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
 
             cursor.execute(
-                "INSERT INTO Data (time, metal, plastic) VALUES (%s, %s, %s)",
+                "INSERT INTO Data (date_time, metal, plastic) VALUES (%s, %s, %s)",
                 (time_now, data['metal'], data['plastic'])
             )
             conn.commit()
 
             # Recupera o registro inserido
-            cursor.execute("SELECT time, metal, plastic FROM Data WHERE time = %s", (time_now,))
+            cursor.execute("SELECT date_time, metal, plastic FROM Data WHERE date_time = %s", (time_now,))
             result = cursor.fetchone()
             cursor.close()
             conn.close()

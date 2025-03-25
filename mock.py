@@ -1,11 +1,12 @@
 import requests
 import time
 import random
+from datetime import datetime
 
 # API endpoint
 API_URL = "http://127.0.0.1:5000/data"  # Replace with your API's URL if hosted elsewhere
 
-# Function to generate mock data
+# Function to generate mock data with timestamp
 def generate_mock_data():
     return {
         "metal": random.randint(0, 100),  # Random metal value (0-100)
@@ -16,10 +17,10 @@ def generate_mock_data():
 def post_data():
     print('entrou')
     mock_data = generate_mock_data()
-    print('entrou2')
+    print('Generated data:', mock_data)
+    
     try:
         response = requests.post(API_URL, json=mock_data)
-        print('entrou3')
         if response.status_code == 200:
             print(f"Data posted successfully: {mock_data}")
         else:

@@ -13,7 +13,7 @@ DB_HOST = "database-2.clhwd5ytyuym.us-east-1.rds.amazonaws.com"
 DB_PORT = 5432
 DB_USER = "postgres"
 DB_NAME = "postgres"
-DB_PASS = "Senhapost"
+DB_PASS = "postgres"
 
 # Função para criar uma conexão com o banco de dados PostgreSQL
 def get_db_connection():

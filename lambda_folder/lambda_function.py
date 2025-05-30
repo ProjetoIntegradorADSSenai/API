@@ -4,7 +4,6 @@ from datetime import datetime
 
 '''
 def lambda_handler(event, context):
-    # TODO implement
     cnx = mysql.connector.connect(
         user='admin', 
         password='adminsenha', 
@@ -34,7 +33,7 @@ def lambda_handler(event, context):
         create_table_query = "CREATE TABLE separacao (id INT AUTO_INCREMENT PRIMARY KEY, id_peca INT, FOREIGN KEY (id_peca) REFERENCES peca(id), horario_inicial TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP, horario_fim TIMESTAMP)"
         cursor.execute(create_table_query)
         cnx.commit()
-
+    
     insert_query = "INSERT INTO mytable (date_time, metal, plastic) VALUES (%s, %s, %s)"
     # insert_values = (event['date_time'], event['metal'], event['plastic'])
     insert_values = ("2025-03-20 16:31:02", 96, 12)

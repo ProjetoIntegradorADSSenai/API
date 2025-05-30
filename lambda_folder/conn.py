@@ -1,49 +1,110 @@
 import json
 import mysql.connector
+import os
 from datetime import datetime
 
-cnx = mysql.connector.connect(
-    user='admin', 
-    password='adminsenha', 
-    host='mydb.culoy8hhyeuv.us-east-1.rds.amazonaws.com',
-    database='mydb'
-)
+def get_db_connection():
+    try:
+        # Recupera as variáveis de ambiente do Lambda para conexão com o banco
+        return mysql.connector.connect(
+            user=os.environ['user'],
+            password=os.environ['password'],
+            host=os.environ['host'],
+            database=os.environ['database']
+        )
+    except Exception as e:
+        print(f"Database connection failed: {str(e)}")
+        return None
 
-cursor = cnx.cursor()
-create_db_query = "CREATE DATABASE IF NOT EXISTS mydb"
-cursor.execute(create_db_query)
-cnx.commit()
+def lambda_handler(event, context):
+    try:
+        # Se conecta ao DB
+        cnx = get_db_connection()
+        if not cnx:
+            return {
+                'statusCode': 500,
+                'body': json.dumps({'error': 'Database connection failed'})
+            }
 
-table_exists_query = 'SHOW TABLES LIKE "mytable"'
-cursor.execute(table_exists_query)
-table_exists = cursor.fetchone()
+        cursor = cnx.cursor()
 
-if not table_exists:
-    create_table_query = "CREATE TABLE mytable (id INT AUTO_INCREMENT PRIMARY KEY, date_time TIMESTAMP, metal INT, plastic INT)"
-    cursor.execute(create_table_query)
-    cnx.commit()
+        # Cria o DB (primeira vez)
+        cursor.execute(f"CREATE DATABASE IF NOT EXISTS {os.environ['database']}")
+        cnx.commit()
 
-insert_query = "INSERT INTO mytable (date_time, metal, plastic) VALUES (%s, %s, %s)"
-# insert_values = (event['date_time'], event['metal'], event['plastic'])
-insert_values = ("2025-03-20 16:31:02", 96, 12)
-cursor.execute(insert_query, insert_values)
-cnx.commit()
+        # Cria a tabela de peças (primeira vez)
+        cursor.execute('SHOW TABLES LIKE "peca"')
+        if not cursor.fetchone():
+            cursor.execute("""
+                CREATE TABLE peca (
+                    id INT AUTO_INCREMENT PRIMARY KEY, 
+                    tipo VARCHAR(255)
+            """)
+            cnx.commit()
 
-select_query = "SELECT * FROM mytable"
-cursor.execute(select_query)
-rows = cursor.fetchall()
+        # Cria a tabela de separação - união com tabela de peças (primeira vez)
+        cursor.execute('SHOW TABLES LIKE "separacao"')
+        if not cursor.fetchone():
+            cursor.execute("""
+                CREATE TABLE separacao (
+                    id INT AUTO_INCREMENT PRIMARY KEY,
+                    id_peca INT,
+                    FOREIGN KEY (id_peca) REFERENCES peca(id),
+                    horario_inicial TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                    horario_fim TIMESTAMP
+                )
+            """)
+            cnx.commit()
 
-table_data = []
-for row in rows:
-    table_data.append({
-        'id': row[0],
-        'date_time': row[1].strftime('%Y-%m-%d %H:%M:%S'),
-        'metal': row[2],
-        'plastic': row[3]
-    })
-json_data = json.dumps(table_data)
+        # Cria a view de agregação dos dados por 5 em 5 min (primeira vez)
+        cursor.execute(f"""
+            SELECT table_name 
+            FROM information_schema.views 
+            WHERE table_schema = '{os.environ['database']}' 
+            AND table_name = 'agregacao'
+        """)   
+        if not cursor.fetchone():
+            create_view_query = """
+            CREATE OR REPLACE VIEW agregacao AS
+            SELECT 
+                p.tipo AS peca_tipo,
+                DATE_FORMAT(
+                    FROM_UNIXTIME(
+                        FLOOR(UNIX_TIMESTAMP(s.horario_inicial)/(5*60))*(5*60)
+                    ), 
+                    '%Y-%m-%d %H:%i:00'
+                ) AS time_interval,
+                COUNT(*) AS total_separacoes,
+                AVG(TIMESTAMPDIFF(SECOND, s.horario_inicial, s.horario_fim)) AS avg_duration_seconds,
+                MIN(TIMESTAMPDIFF(SECOND, s.horario_inicial, s.horario_fim)) AS min_duration,
+                MAX(TIMESTAMPDIFF(SECOND, s.horario_inicial, s.horario_fim)) AS max_duration
+            FROM 
+                separacao s
+            INNER JOIN 
+                peca p ON s.id_peca = p.id
+            GROUP BY 
+                p.tipo,
+                time_interval
+            ORDER BY 
+                time_interval, p.tipo;
+            """
+            cursor.execute(create_view_query)
+            cnx.commit()
 
-cursor.close()
-cnx.close()
+        return {
+            'statusCode': 200,
+            'body': json.dumps({'message': 'Database setup completed successfully'})
+        }
 
-print(table_data)
+    except Exception as e:
+        print(f"Error: {str(e)}")
+        return {
+            'statusCode': 500,
+            'body': json.dumps({'error': str(e)})
+        }
+
+    finally:
+        if 'cursor' in locals():
+            cursor.close()
+        if 'cnx' in locals():
+            cnx.close()

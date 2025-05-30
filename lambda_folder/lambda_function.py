@@ -8,21 +8,30 @@ def lambda_handler(event, context):
     cnx = mysql.connector.connect(
         user='admin', 
         password='adminsenha', 
-        host='database-mysql.culoy8hhyeuv.us-east-1.rds.amazonaws.com',
-        database='mydb'
+        host='mydb.cvqqiquykhcp.us-east-1.rds.amazonaws.com',
+        database='myDB'
     )
 
     cursor = cnx.cursor()
-    create_db_query = "CREATE DATABASE IF NOT EXISTS mydb"
+    create_db_query = "CREATE DATABASE IF NOT EXISTS myDB"
     cursor.execute(create_db_query)
     cnx.commit()
 
-    table_exists_query = 'SHOW TABLES LIKE "mytable"'
+    peca_exists_query = 'SHOW TABLES LIKE "peca"'
     cursor.execute(table_exists_query)
     table_exists = cursor.fetchone()
 
     if not table_exists:
-        create_table_query = "CREATE TABLE mytable (id INT AUTO_INCREMENT PRIMARY KEY, date_time TIMESTAMP, metal INT, plastic INT)"
+        create_table_query = "CREATE TABLE peca (id INT AUTO_INCREMENT PRIMARY KEY, tipo VARCHAR(255))"
+        cursor.execute(create_table_query)
+        cnx.commit()
+
+    separacao_exists_query = 'SHOW TABLES LIKE "separacao"'
+    cursor.execute(table_exists_query)
+    table_exists = cursor.fetchone()
+
+    if not table_exists:
+        create_table_query = "CREATE TABLE separacao (id INT AUTO_INCREMENT PRIMARY KEY, id_peca INT, FOREIGN KEY (id_peca) REFERENCES peca(id), horario_inicial TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP, horario_fim TIMESTAMP)"
         cursor.execute(create_table_query)
         cnx.commit()
 

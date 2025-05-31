@@ -28,6 +28,9 @@ def lambda_handler(event, context):
 
         cursor = cnx.cursor()
 
+        # Timezone do Brasil
+        cursor.execute("SET time_zone = 'America/Sao_Paulo';")
+
         # Cria o DB (primeira vez)
         cursor.execute(f"CREATE DATABASE IF NOT EXISTS {os.environ['database']}")
         cnx.commit()
@@ -64,31 +67,41 @@ def lambda_handler(event, context):
             AND table_name = 'agregacao'
         """)   
         if not cursor.fetchone():
-            create_view_query = """
-            CREATE OR REPLACE VIEW agregacao AS
-            SELECT 
-                p.tipo AS peca_tipo,
-                DATE_FORMAT(
-                    FROM_UNIXTIME(
-                        FLOOR(UNIX_TIMESTAMP(s.horario_inicial)/(5*60))*(5*60)
-                    ), 
-                    '%Y-%m-%d %H:%i:00'
-                ) AS time_interval,
-                COUNT(*) AS total_separacoes,
-                AVG(TIMESTAMPDIFF(SECOND, s.horario_inicial, s.horario_fim)) AS avg_duration_seconds,
-                MIN(TIMESTAMPDIFF(SECOND, s.horario_inicial, s.horario_fim)) AS min_duration,
-                MAX(TIMESTAMPDIFF(SECOND, s.horario_inicial, s.horario_fim)) AS max_duration
-            FROM 
-                separacao s
-            INNER JOIN 
-                peca p ON s.id_peca = p.id
-            GROUP BY 
-                p.tipo,
-                time_interval
-            ORDER BY 
-                time_interval, p.tipo;
-            """
+            create_view_query = create_view_query = """
+                CREATE OR REPLACE VIEW agregacao AS
+                SELECT 
+                    p.tipo AS peca_tipo,
+                    DATE_FORMAT(
+                        CONVERT_TZ(
+                            FROM_UNIXTIME(
+                                FLOOR(UNIX_TIMESTAMP(s.horario_inicial)/(5*60))*(5*60)
+                            ),
+                            'UTC', 'America/Sao_Paulo'
+                        ), 
+                        '%Y-%m-%d %H:%i:00'
+                    ) AS time_interval,
+                    COUNT(*) AS total_separacoes,
+                    AVG(TIMESTAMPDIFF(SECOND, s.horario_inicial, s.horario_fim)) AS avg_duration_seconds,
+                    MIN(TIMESTAMPDIFF(SECOND, s.horario_inicial, s.horario_fim)) AS min_duration,
+                    MAX(TIMESTAMPDIFF(SECOND, s.horario_inicial, s.horario_fim)) AS max_duration
+                FROM 
+                    separacao s
+                INNER JOIN 
+                    peca p ON s.id_peca = p.id
+                GROUP BY 
+                    p.tipo,
+                    time_interval
+                ORDER BY 
+                    time_interval, p.tipo;
+                """
             cursor.execute(create_view_query)
+            cnx.commit()
+
+            cursor.execute("""
+                UPDATE separacao 
+                SET horario_inicial = CONVERT_TZ(horario_inicial, 'UTC', 'America/Sao_Paulo'),
+                    horario_fim = CONVERT_TZ(horario_fim, 'UTC', 'America/Sao_Paulo')
+            """)
             cnx.commit()
 
         return {

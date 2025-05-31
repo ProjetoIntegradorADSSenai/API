@@ -16,10 +16,14 @@ def get_db_connection():
 
 def lambda_handler(event, context):
     try:
-        body = event['body']
-        id_peca = body['id_peca']  # O que é esperado -> {"id_peca": 1, "horario_fim": "2023-10-01 12:00:00"}
-        horario_fim = body['horario_fim']  # Opcional (o horário de início é gerado automaticamente pelo banco)
-
+        if 'body' in event:
+            body = json.loads(event['body'])
+            id_peca = body['id_peca']  # O que é esperado -> {"id_peca": 1, "horario_fim": "2023-10-01 12:00:00"}
+            horario_fim = body['horario_fim']  # Opcional (o horário de início é gerado automaticamente pelo banco)
+        else:
+            id_peca = event['id_peca']  # O que é esperado -> {"id_peca": 1, "horario_fim": "2023-10-01 12:00:00"}
+            horario_fim = event['horario_fim']  # Opcional (o horário de início é gerado automaticamente pelo banco)
+        
         conn = get_db_connection()
         if not conn:
             return {

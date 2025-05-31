@@ -16,8 +16,11 @@ def get_db_connection():
 
 def lambda_handler(event, context):
     try:
-        body = event['body']
-        tipo = body['tipo']
+        if 'body' in event:
+            body = json.loads(event['body'])
+            tipo = body['tipo']
+        else:
+            tipo = event['tipo']
 
         conn = get_db_connection()
         if not conn:
@@ -42,8 +45,13 @@ def lambda_handler(event, context):
             'statusCode': 201,
             'body': json.dumps({
                 'message': 'Part created successfully',
-                'id_peca': id_peca  # Retorna o ID
+                'id_peca': id_peca
             })
+        }
+    except KeyError:
+        return {
+            'statusCode': 400,
+            'body': json.dumps({'error': 'Missing "tipo" in request body'})
         }
     except Exception as e:
         return {

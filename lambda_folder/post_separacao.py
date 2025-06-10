@@ -18,11 +18,9 @@ def lambda_handler(event, context):
     try:
         if 'body' in event:
             body = json.loads(event['body'])
-            id_peca = body['id_peca']  # O que é esperado -> {"id_peca": 1, "horario_fim": "2023-10-01 12:00:00"}
-            horario_fim = body['horario_fim']  # Opcional (o horário de início é gerado automaticamente pelo banco)
+            id_pecas = body['id_pecas']  # O que é esperado -> {"id_pecas": [1,2,3]}
         else:
-            id_peca = event['id_peca']  # O que é esperado -> {"id_peca": 1, "horario_fim": "2023-10-01 12:00:00"}
-            horario_fim = event['horario_fim']  # Opcional (o horário de início é gerado automaticamente pelo banco)
+            id_pecas = event['id_pecas']  # O que é esperado -> {"id_pecas": [1,2,3]}
         
         conn = get_db_connection()
         if not conn:
@@ -34,15 +32,10 @@ def lambda_handler(event, context):
         cursor = conn.cursor()
         # Timezone do Brasil
         cursor.execute("SET time_zone = 'America/Sao_Paulo';")
-        if horario_fim:
-            cursor.execute(
-                "INSERT INTO separacao (id_peca, horario_fim) VALUES (%s, %s)",
-                (id_peca, horario_fim)
-            )
-        else:
+        for peca in id_pecas:
             cursor.execute(
                 "INSERT INTO separacao (id_peca) VALUES (%s)",
-                (id_peca,)
+                (peca,)
             )
         conn.commit()
         cursor.close()

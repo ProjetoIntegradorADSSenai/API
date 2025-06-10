@@ -18,9 +18,11 @@ def lambda_handler(event, context):
     try:
         if 'body' in event:
             body = json.loads(event['body'])
-            tipo = body['tipo']
+            tipos = body['tipos']
         else:
-            tipo = event['tipo']
+            tipos = event['tipos']
+
+        id_pecas = []
 
         conn = get_db_connection()
         if not conn:
@@ -31,11 +33,11 @@ def lambda_handler(event, context):
 
         cursor = conn.cursor()
         cursor.execute("SET time_zone = 'America/Sao_Paulo';")
-        cursor.execute("INSERT INTO peca (tipo) VALUES (%s)", (tipo,))
-        
-        # Retorna o ID da peça para adicioná-la na tabela 'separacao' posteriormente
-        cursor.execute("SELECT LAST_INSERT_ID();")
-        id_peca = cursor.fetchone()[0]
+        for peca in tipos:
+            cursor.execute("INSERT INTO peca (tipo) VALUES (%s)", (peca,))
+            # Get the inserted part's ID
+            cursor.execute("SELECT LAST_INSERT_ID();")
+            id_pecas.append(cursor.fetchone()[0])
 
         conn.commit()
         cursor.close()
@@ -45,13 +47,13 @@ def lambda_handler(event, context):
             'statusCode': 201,
             'body': json.dumps({
                 'message': 'Part created successfully',
-                'id_peca': id_peca
+                'id_peca': id_pecas
             })
         }
     except KeyError:
         return {
             'statusCode': 400,
-            'body': json.dumps({'error': 'Missing "tipo" in request body'})
+            'body': json.dumps({'error': 'Missing "tipos" in request body'})
         }
     except Exception as e:
         return {

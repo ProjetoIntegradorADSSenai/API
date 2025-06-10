@@ -1,0 +1,26 @@
+[
+    {
+        "response_key": "saudacao",
+        "patterns": ["olá", "oi", "bom dia", "boa tarde", "e aí", "saudações"]
+    },
+    {
+        "response_key": "despedida",
+        "patterns": ["tchau", "adeus", "encerrar", "flw"]
+    },
+    {
+        "response_key": "agradecimento",
+    "patterns": ["obrigado", "valeu", "agradeço", "grato", "obrigada", "vlw"]
+    },
+    {
+        "response_key": "consulta_geral",
+        "patterns": ["listar separações", "mostrar separações", "separações cadastradas", "listar tudo", "mostrar tudo"]
+    },
+    {
+        "response_key": "total_peças",
+        "patterns": ["peças totais", "total de peças", "quantidade de peças"]
+    },
+    {
+        "response_key": "fallback",
+        "patterns": ["não entendi", "pode repetir", "não compreendi", "o que é isso?"]
+    }
+]

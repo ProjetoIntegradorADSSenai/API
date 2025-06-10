@@ -29,10 +29,7 @@ def get():
                 time_interval,
                 DATE_FORMAT(time_interval, '%Y-%m-%d') AS date,
                 DATE_FORMAT(time_interval, '%H:%i:%s') AS time,
-                total_separacoes,
-                avg_duration_seconds,
-                min_duration,
-                max_duration
+                total_separacoes
             FROM agregacao
         """)
         results = cursor.fetchall()

@@ -2,7 +2,7 @@
     "saudacao": "Olá! Como posso ajudar?",
     "despedida": "Até logo! Volte sempre que precisar.",
     "agradecimento": "De nada! Fico feliz em ajudar.",
-    "consulta_geral": "Clientes cadastrados: ",
-    "total_pecas": "Total de vendas: ",
+    "consulta_geral": "Separações registradas: ",
+    "total_pecas": "Peças registradas: ",
     "fallback": "Desculpe, não entendi. Poderia reformular?"
 }

@@ -71,7 +71,7 @@ class IntentClassifier:
 
     def execute_sql_query(self, query_key, params=None):
         conn = get_db_connection()
-        cursor = conn.cursor()
+        cursor = conn.cursor(dictionary=True)
         cursor.execute(self.queries[query_key], params or ())
         results = cursor.fetchall()
         cursor.close()

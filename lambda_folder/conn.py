@@ -42,6 +42,7 @@ def lambda_handler(event, context):
                 CREATE TABLE peca (
                     id INT AUTO_INCREMENT PRIMARY KEY, 
                     tipo VARCHAR(255)
+                )
             """)
             cnx.commit()
 
@@ -53,8 +54,19 @@ def lambda_handler(event, context):
                     id INT AUTO_INCREMENT PRIMARY KEY,
                     id_peca INT,
                     FOREIGN KEY (id_peca) REFERENCES peca(id),
-                    horario_inicial TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-                    horario_fim TIMESTAMP
+                    horario TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+                )
+            """)
+            cnx.commit()
+
+        # Cria a tabela de sensores (primeira vez)
+        cursor.execute('SHOW TABLES LIKE "dispositivos"')
+        if not cursor.fetchone():
+            cursor.execute("""
+                CREATE TABLE dispositivos (
+                    id INT AUTO_INCREMENT PRIMARY KEY, 
+                    nome VARCHAR(255),
+                    estado BOOLEAN
                 )
             """)
             cnx.commit()
@@ -64,26 +76,23 @@ def lambda_handler(event, context):
             SELECT table_name 
             FROM information_schema.views 
             WHERE table_schema = '{os.environ['database']}' 
-            AND table_name = 'agregacao'
+            AND table_name = 'agregacao';
         """)   
         if not cursor.fetchone():
-            create_view_query = create_view_query = """
+            create_view_query = """
                 CREATE OR REPLACE VIEW agregacao AS
                 SELECT 
                     p.tipo AS peca_tipo,
                     DATE_FORMAT(
                         CONVERT_TZ(
                             FROM_UNIXTIME(
-                                FLOOR(UNIX_TIMESTAMP(s.horario_inicial)/(5*60))*(5*60)
+                                FLOOR(UNIX_TIMESTAMP(s.horario)/(5*60))*(5*60)
                             ),
                             'UTC', 'America/Sao_Paulo'
                         ), 
                         '%Y-%m-%d %H:%i:00'
                     ) AS time_interval,
-                    COUNT(*) AS total_separacoes,
-                    AVG(TIMESTAMPDIFF(SECOND, s.horario_inicial, s.horario_fim)) AS avg_duration_seconds,
-                    MIN(TIMESTAMPDIFF(SECOND, s.horario_inicial, s.horario_fim)) AS min_duration,
-                    MAX(TIMESTAMPDIFF(SECOND, s.horario_inicial, s.horario_fim)) AS max_duration
+                    COUNT(*) AS total_separacoes
                 FROM 
                     separacao s
                 INNER JOIN 
@@ -99,8 +108,7 @@ def lambda_handler(event, context):
 
             cursor.execute("""
                 UPDATE separacao 
-                SET horario_inicial = CONVERT_TZ(horario_inicial, 'UTC', 'America/Sao_Paulo'),
-                    horario_fim = CONVERT_TZ(horario_fim, 'UTC', 'America/Sao_Paulo')
+                SET horario = CONVERT_TZ(horario, 'UTC', 'America/Sao_Paulo')
             """)
             cnx.commit()
 

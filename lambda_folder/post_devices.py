@@ -18,10 +18,10 @@ def lambda_handler(event, context):
     try:
         if 'body' in event:
             body = json.loads(event['body'])
-            id_pecas = body['id_pecas']  # O que é esperado -> {"id_pecas": [1,2,3]}
+            devices = body['dispositivos'] # Espera -> { 'dispositivos': {'sensor_1': true, 'sensor_2': false, ...} }
         else:
-            id_pecas = event['id_pecas']  # O que é esperado -> {"id_pecas": [1,2,3]}
-        
+            devices = event['dispositivos']
+
         conn = get_db_connection()
         if not conn:
             return {
@@ -30,19 +30,23 @@ def lambda_handler(event, context):
             }
 
         cursor = conn.cursor()
-        cursor.execute("SET time_zone = 'America/Sao_Paulo';")
-        for peca in id_pecas:
-            cursor.execute(
-                "INSERT INTO separacao (id_peca) VALUES (%s)",
-                (peca,)
-            )
+        for key, value in devices.items():
+            cursor.execute("UPDATE dispositivos SET estado = %s WHERE nome = %s", (value, key))
+
         conn.commit()
         cursor.close()
         conn.close()
 
         return {
             'statusCode': 201,
-            'body': json.dumps({'message': 'Separation record created successfully'})
+            'body': json.dumps({
+                'message': 'Devices updated successfully',
+            })
+        }
+    except KeyError:
+        return {
+            'statusCode': 400,
+            'body': json.dumps({'error': 'Missing "dispositivos" in request body'})
         }
     except Exception as e:
         return {

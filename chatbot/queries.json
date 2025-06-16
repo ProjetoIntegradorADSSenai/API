@@ -1,0 +1,4 @@
+{
+    "consulta_geral": "SELECT peca_tipo, time_interval, DATE_FORMAT(time_interval, '%Y-%m-%d') AS date, DATE_FORMAT(time_interval, '%H:%i:%s') AS time, total_separacoes FROM agregacao ORDER BY time_interval DESC LIMIT 10",
+    "total_pecas": "SELECT * FROM peca ORDER BY id DESC limit 10"
+}

@@ -35,7 +35,6 @@ def lambda_handler(event, context):
         cursor.execute("SET time_zone = 'America/Sao_Paulo';")
         for peca in tipos:
             cursor.execute("INSERT INTO peca (tipo) VALUES (%s)", (peca,))
-            # Get the inserted part's ID
             cursor.execute("SELECT LAST_INSERT_ID();")
             id_pecas.append(cursor.fetchone()[0])
 

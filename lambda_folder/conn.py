@@ -59,6 +59,18 @@ def lambda_handler(event, context):
             """)
             cnx.commit()
 
+        # Cria a tabela de sensores (primeira vez)
+        cursor.execute('SHOW TABLES LIKE "dispositivos"')
+        if not cursor.fetchone():
+            cursor.execute("""
+                CREATE TABLE dispositivos (
+                    id INT AUTO_INCREMENT PRIMARY KEY, 
+                    nome VARCHAR(255),
+                    estado BOOLEAN
+                )
+            """)
+            cnx.commit()
+
         # Cria a view de agregação dos dados por 5 em 5 min (primeira vez)
         cursor.execute(f"""
             SELECT table_name 

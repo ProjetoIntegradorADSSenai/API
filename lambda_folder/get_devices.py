@@ -16,12 +16,6 @@ def get_db_connection():
 
 def lambda_handler(event, context):
     try:
-        if 'body' in event:
-            body = json.loads(event['body'])
-            id_pecas = body['id_pecas']  # O que é esperado -> {"id_pecas": [1,2,3]}
-        else:
-            id_pecas = event['id_pecas']  # O que é esperado -> {"id_pecas": [1,2,3]}
-        
         conn = get_db_connection()
         if not conn:
             return {
@@ -31,18 +25,16 @@ def lambda_handler(event, context):
 
         cursor = conn.cursor()
         cursor.execute("SET time_zone = 'America/Sao_Paulo';")
-        for peca in id_pecas:
-            cursor.execute(
-                "INSERT INTO separacao (id_peca) VALUES (%s)",
-                (peca,)
-            )
+        cursor.execute("SELECT * FROM dispositivos")
+        result = cursor.fetchall()
+
         conn.commit()
         cursor.close()
         conn.close()
 
         return {
             'statusCode': 201,
-            'body': json.dumps({'message': 'Separation record created successfully'})
+            'body': json.dumps(result)
         }
     except Exception as e:
         return {

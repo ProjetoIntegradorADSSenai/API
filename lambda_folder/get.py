@@ -22,7 +22,6 @@ def get():
     try:
         cursor = conn.cursor(dictionary=True)
         # Timezone do Brasil
-        cursor.execute("SET time_zone = 'America/Sao_Paulo';")        
         cursor.execute("""
             SELECT 
                 peca_tipo,
@@ -31,6 +30,7 @@ def get():
                 DATE_FORMAT(time_interval, '%H:%i:%s') AS time,
                 total_separacoes
             FROM agregacao
+            ORDER BY time_interval DESC
         """)
         results = cursor.fetchall()
         cursor.close()
@@ -49,6 +49,11 @@ def get():
 
         return {
             'statusCode': 200,
+            'headers': {
+                "Access-Control-Allow-Origin": "*",
+                "Access-Control-Allow-Methods": "GET,OPTIONS",
+                "Access-Control-Allow-Headers": "*"
+            },
             'body': json.dumps(final_output, default=str)
         }
     except Exception as e:

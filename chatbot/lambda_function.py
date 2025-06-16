@@ -110,7 +110,15 @@ def lambda_handler(event, context):
             return json.dumps({'error': 'O campo "prompt" é obrigatório.'}), 400
 
         bot_response = classifier.respond(prompt)
-        return json.dumps({'response': bot_response}), 200
+        return {
+            'statusCode': 200,
+            'headers': {
+                "Access-Control-Allow-Origin": "*",
+                "Access-Control-Allow-Methods": "GET, POST,OPTIONS",
+                "Access-Control-Allow-Headers": "*"
+            },
+            'body': json.dumps({'response': bot_response}, default=str)
+        }
 
     except Exception as e:
         return json.dumps({'error': str(e)}), 500
